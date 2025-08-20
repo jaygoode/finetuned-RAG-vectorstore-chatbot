@@ -1,6 +1,6 @@
 lora_out/
 logs/
-
+lora-adapter
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
