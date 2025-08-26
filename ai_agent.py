@@ -1,4 +1,4 @@
-from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
+from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline, BitsAndBytesConfig
 from peft import PeftModel
 from dotenv import load_dotenv
 from langgraph.graph import StateGraph, END
@@ -75,19 +75,26 @@ def vector_store_init():
 
 def chat_model_init():
     CHAT_MODEL = "mistralai/Mistral-7B-v0.1"
+    quant_config = BitsAndBytesConfig(
+        load_in_4bit=True,                 # enable 4-bit
+        bnb_4bit_use_double_quant=True,    # nested quantization
+        bnb_4bit_quant_type="nf4",         # NormalFloat4, best for LLMs
+        bnb_4bit_compute_dtype="float16",  # can also try "bfloat16" on Ampere GPUs
+    )
     tokenizer = AutoTokenizer.from_pretrained(CHAT_MODEL)
     tokenizer.pad_token = tokenizer.eos_token
     model = AutoModelForCausalLM.from_pretrained(
         CHAT_MODEL,
         device_map="auto",
-        load_in_4bit=True,              
-        bnb_4bit_compute_dtype="float16",
-        bnb_4bit_use_double_quant=True, 
-        bnb_4bit_quant_type="nf4",
+        quantization_config=quant_config
     )
 
-    adapter_path = "./adapter_model.safetensors" 
-    model = PeftModel.from_pretrained(model, adapter_path)
+    adapter_path = "./lora-adapter/adapter_model.safetensors" 
+    try:
+        model = PeftModel.from_pretrained(model, adapter_path)
+    except Exception:
+        print("No PEFT adapter found, continuing with base model.")
+
     gen_pipe = pipeline(
     "text-generation",
     model=model,
