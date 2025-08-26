@@ -1,0 +1,83 @@
+CONTACT
+SKILLS
+LANGUAGES
++358 40 583 1972
+Johnny_nylund@hotmail.com
+65100, Vaasa
+Github
+LinkedIn
+Platoon leader for 30 personnel within a
+company of 100, organizing and leading
+operations under high-stress conditions.
+Fostering teamwork and resilience in
+physically and mentally challenging
+environments, honing leadership, strategy,
+and organizational skills on a 24h basis.
+Managing logistics and inventory, ensuring
+all equipment and supplies are accounted
+for during demanding field exercises.
+Python
+Javascript/Typescript (fullstack)
+N8N
+LangChain
+Openpyxl - Pandas
+Selenium - Pywinauto - PyAutoGUI
+AI powered automation
+Cybersecurity and Networking
+Customer Support
+Jira - Efecte
+Docker
+Microsoft Azure and Amazon Cloud
+Swedish (Native)
+English (Fluent)
+Finnish (B1+ Intermediate)
+JOHNNY NYLUND
+SOFTWARE DEVELOPER
+WORK EXPERIENCE
+PROFILE
+Dynamic and results-driven software developer and support manager,
+specialized in robotic process automation (RPA) and fullstack development
+with a proven track record of independently delivering impactful
+automation solutions. Demonstrates a growth mindset and excels in
+technical communication, fostering strong client relationships and
+delivering high-value contracts. Adept at critical thinking and innovation,
+consistently developing creative solutions to complex challenges.
+JAN 2023- AUG 2025
+End-to-End Automation Development: Designed, developed, and
+deployed software automation robots for a diverse client base,
+independently handling planning, design, testing, and
+implementation. Delivered 3-5 custom automations annually,
+generating over ~$50,000 income per robot.
+File Transfer System Maintenance: Contributed to the development
+and upkeep of an €500,000+ investment file transfer software system,
+facilitating the transfer of millions of records with high accuracy over
+several months.
+Collaboration & Scalability: Worked with a cross-functional team
+to streamline and optimize data transfer protocols, improving scalability
+and reliability.
+Client Relationship Management: Revitalized key Swedish client
+relationships after departmental changes, leading strategic meetings
+and securing multiple new contracts through technical expertise.
+Operational Efficiency: Enhanced existing automation solutions via
+Jira by addressing change requests, bug fixes, and feature
+extensions, ensuring smooth business processes and client
+satisfaction.
+Technical Leadership: Delivered secure and robust software
+solutions to support critical business operations, leveraging deep
+technical knowledge to recommend system improvements and
+maintain high client trust.
+Software Developer & Support Manager - Digia Finland Oy
+MAY - END OF AUGUST 2017, 2018, 2019, 2021
+Performed pressure vessel design calculations to enhance air intake
+efficiency for the W32 engine, the world’s most efficient engine.
+Conducted gas mixture calculations for a U.S.-based pipeline project,
+influencing multi-million-dollar contract decisions through meticulous
+analysis of gas quality options.
+Oversaw on-site technical tasks, including balancing generator
+couplings to millimeter precision and tuning engine intake and
+exhaust valves, ensuring optimal performance and client satisfaction.
+Managed contracts and expense tracking, ensuring projects
+remained on budget and delivered as per client requirements.
+Mechanical engineering trainee - Wärtsilä Oy
+Dragsviikin Maakuntajoukkue
+- Finnish Army Reserves
