@@ -6,6 +6,7 @@ from typing import TypedDict, Annotated, Sequence
 from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage, ToolMessage
 from operator import add as add_messages
 from langchain_community.document_loaders import PyPDFLoader
+from langchain_community.document_loaders import UnstructuredPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_chroma import Chroma
 from langchain_core.tools import tool
@@ -16,18 +17,18 @@ from langchain_huggingface import HuggingFaceEmbeddings
 
 # --- 2.5 Prompt + simple RAG function
 RAG_PROMPT = ChatPromptTemplate.from_template(
-    """You are a helpful assistant. Use ONLY the provided context to answer the user's question.
-If the answer is not in the context, say you don't know.
+    """You are a career advisor. Use ONLY the provided context (the candidate's CV) to answer the user's question.
+If the answer is not in the context, say "I don't know".
 
 Question: {question}
 
-Context:
+Candidate CV:
 {context}
 
 Answer:"""
 )
 
-def load_pdf(pdf_path, chunk_size=600, chunk_overlap=80):
+def load_pdf(pdf_path, chunk_size=300, chunk_overlap=50):
     """
     Reads a PDF and splits it into text chunks for embedding.
     
@@ -39,13 +40,14 @@ def load_pdf(pdf_path, chunk_size=600, chunk_overlap=80):
     Returns:
         List[Document]: LangChain Document objects
     """
-    loader = PyPDFLoader(pdf_path)
+    loader = UnstructuredPDFLoader(pdf_path)
     docs = loader.load()
-    
+    for d in docs:
+        print(d.page_content[:500])
+    breakpoint()
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=chunk_size,
-        chunk_overlap=chunk_overlap,
-        separators=["\n\n", "\n", " ", ""]
+        chunk_overlap=chunk_overlap
     )
     split_docs = splitter.split_documents(docs)
     return split_docs
@@ -57,21 +59,31 @@ def vector_store_init():
         model_kwargs={"device":"cuda"},
         encode_kwargs={"normalize_embeddings":True}
     )
-    pdf_path = "./johnny_nylund_2025_Resume.pdf"
-    split_docs = load_pdf(pdf_path)
 
     persist_dir = "./chroma_rag_store"
-    vectorestore = Chroma.from_documents(
-        documents=split_docs,
-        embedding=embeddings,
-        collection_name="kb_store",
-        persist_directory=persist_dir
-    )
-    vectorestore.persist()
+    collection_name = "kb_store"
+
+    try:
+        # Try to load existing collection
+        vectorestore = Chroma(
+            collection_name=collection_name,
+            persist_directory=persist_dir,
+            embedding_function=embeddings
+        )
+        print("Loaded existing Chroma vectorstore from disk ✅")
+    except Exception:
+        # If it doesn't exist, embed documents
+        split_docs = load_pdf("./johnny_nylund_2025_Resume.pdf")
+        vectorestore = Chroma.from_documents(
+            documents=split_docs,
+            embedding=embeddings,
+            collection_name=collection_name,
+            persist_directory=persist_dir
+        )
+        print("Created new Chroma vectorstore from PDF ✅")
 
     retriever = vectorestore.as_retriever(search_kwargs={"k": 4})
     return retriever
-
 def chat_model_init():
     CHAT_MODEL = "mistralai/Mistral-7B-v0.1"
     quant_config = BitsAndBytesConfig(
@@ -88,7 +100,7 @@ def chat_model_init():
         quantization_config=quant_config
     )
 
-    adapter_path = "./lora-adapter/adapter_model.safetensors" 
+    adapter_path = "D:\\repos\\finetuned-RAG-vectorstore-chatbot\\lora-adapter\\adapter_model.safetensors" 
     try:
         model = PeftModel.from_pretrained(model, adapter_path)
     except Exception:
@@ -103,18 +115,18 @@ def chat_model_init():
     temperature=0.3,
     top_p=0.9,
 )
-    return HuggingFacePipeline(pipeline=gen_pipe), tokenizer
+    return HuggingFacePipeline(pipeline=gen_pipe)
 
 
 def rag_answer():
     llm = chat_model_init()
-    question = "Explain quantum computing in simple terms."
+    question = "what job roles are recommended for this persons CV(located under context)?"
     retriever = vector_store_init()
-    docs = retriever.get_relevant_documents(question)
+    docs = retriever.invoke(question)
     context = "\n\n".join([d.page_content for d in docs])
 
     prompt = RAG_PROMPT.format(question=question, context=context)
 
-    out = llm(prompt.to_string())
+    out = out = llm.invoke(prompt)
     return out, docs
 
