@@ -1,4 +1,4 @@
-from transformers import AutoTokenizer, AutoModelForCausalLM
+from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 from peft import PeftModel
 from dotenv import load_dotenv
 from langgraph.graph import StateGraph, END
@@ -9,33 +9,106 @@ from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_chroma import Chroma
 from langchain_core.tools import tool
+from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFacePipeline
+from langchain_core.prompts import ChatPromptTemplate
+from sentence_transformers import SentenceTransformer
 
 
-def generate():
-    base_model_name = "mistralai/Mistral-7B-v0.1"
-    tokenizer = AutoTokenizer.from_pretrained(base_model_name)
+# --- 2.5 Prompt + simple RAG function
+RAG_PROMPT = ChatPromptTemplate.from_template(
+    """You are a helpful assistant. Use ONLY the provided context to answer the user's question.
+If the answer is not in the context, say you don't know.
+
+Question: {question}
+
+Context:
+{context}
+
+Answer:"""
+)
+
+def load_pdf(pdf_path, chunk_size=600, chunk_overlap=80):
+    """
+    Reads a PDF and splits it into text chunks for embedding.
+    
+    Args:
+        pdf_path (str): Path to the PDF file
+        chunk_size (int): Max size of each chunk
+        chunk_overlap (int): Overlap between chunks
+    
+    Returns:
+        List[Document]: LangChain Document objects
+    """
+    loader = PyPDFLoader(pdf_path)
+    docs = loader.load()
+    
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=chunk_size,
+        chunk_overlap=chunk_overlap,
+        separators=["\n\n", "\n", " ", ""]
+    )
+    split_docs = splitter.split_documents(docs)
+    return split_docs
+
+def vector_store_init():
+    EMBEDDING_MODEL = "BAAI/bge-large-en"
+    embeddings = HuggingFaceEmbeddings(
+        model_name=EMBEDDING_MODEL,
+        model_kwargs={"device":"cuda"},
+        encode_kwargs={"normalize_embeddings":True}
+    )
+    pdf_path = "./test.pdf"
+    split_docs = load_pdf(pdf_path)
+
+    persist_dir = "./chroma_rag_store"
+    vectorestore = Chroma.from_documents(
+        documents=split_docs,
+        embedding=embeddings,
+        collection_name="kb",
+        persist_directory=persist_dir
+    )
+    vectorestore.persist()
+
+    retriever = vectorestore.as_retriever(search_kwargs={"k": 4})
+    return retriever
+
+def chat_model_init():
+    CHAT_MODEL = "mistralai/Mistral-7B-v0.1"
+    tokenizer = AutoTokenizer.from_pretrained(CHAT_MODEL)
     tokenizer.pad_token = tokenizer.eos_token
-
-    # Load base model
     model = AutoModelForCausalLM.from_pretrained(
-        base_model_name,
-        device_map="auto",  # or "cuda" if using GPU
+        CHAT_MODEL,
+        device_map="auto",
+        load_in_4bit=True,              
+        bnb_4bit_compute_dtype="float16",
+        bnb_4bit_use_double_quant=True, 
+        bnb_4bit_quant_type="nf4",
     )
 
-    adapter_path = "./adapter_model.safetensors"  # your LoRA file
+    adapter_path = "./adapter_model.safetensors" 
     model = PeftModel.from_pretrained(model, adapter_path)
+    gen_pipe = pipeline(
+    "text-generation",
+    model=model,
+    tokenizer=tokenizer,
+    max_new_tokens=512,
+    do_sample=True,
+    temperature=0.3,
+    top_p=0.9,
+)
+    return HuggingFacePipeline(pipeline=gen_pipe), tokenizer
 
-    prompt = "Explain quantum computing in simple terms."
 
-    inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
+def rag_answer():
+    llm = chat_model_init()
+    question = "Explain quantum computing in simple terms."
+    retriever = vector_store_init()
+    docs = retriever.get_relevant_documents(question)
+    context = "\n\n".join([d.page_content for d in docs])
 
-    # Generate
-    outputs = model.generate(
-        **inputs,
-        max_new_tokens=200,
-        do_sample=True,
-        temperature=0.7,
-        top_p=0.9
-    )
+    prompt = RAG_PROMPT.format(question=question, context=context)
 
-    return tokenizer.decode(outputs[0], skip_special_tokens=True)
+    out = llm(prompt.to_string())
+    return out, docs
+
