@@ -9,11 +9,10 @@ from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_chroma import Chroma
 from langchain_core.tools import tool
-from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_huggingface import HuggingFacePipeline
 from langchain_core.prompts import ChatPromptTemplate
 from sentence_transformers import SentenceTransformer
-
+from langchain_huggingface import HuggingFaceEmbeddings
 
 # --- 2.5 Prompt + simple RAG function
 RAG_PROMPT = ChatPromptTemplate.from_template(
@@ -58,14 +57,14 @@ def vector_store_init():
         model_kwargs={"device":"cuda"},
         encode_kwargs={"normalize_embeddings":True}
     )
-    pdf_path = "./test.pdf"
+    pdf_path = "./johnny_nylund_2025_Resume.pdf"
     split_docs = load_pdf(pdf_path)
 
     persist_dir = "./chroma_rag_store"
     vectorestore = Chroma.from_documents(
         documents=split_docs,
         embedding=embeddings,
-        collection_name="kb",
+        collection_name="kb_store",
         persist_directory=persist_dir
     )
     vectorestore.persist()
